@@ -1,0 +1,55 @@
+go2rtc:
+  externo: true
+  api: "127.0.0.1:1984"
+sucursales:
+  - id: s1
+    nombre: Sucursal 1
+    dvr:
+      marca: hikvision
+      host: 127.0.0.1
+      puerto: 1984
+    camaras:
+      - canal: 1
+        nombre: Cámara 1
+        clave: true
+      - canal: 2
+        nombre: Cámara 2
+      - canal: 3
+        nombre: Cámara 3
+      - canal: 4
+        nombre: Cámara 4
+  - id: s2
+    nombre: Sucursal 2
+    dvr:
+      marca: hikvision
+      host: 127.0.0.1
+      puerto: 1984
+    camaras:
+      - canal: 1
+        nombre: Cámara 1
+        clave: true
+      - canal: 2
+        nombre: Cámara 2
+  - id: s3
+    nombre: Sucursal 3
+    dvr:
+      marca: hikvision
+      host: 127.0.0.1
+      puerto: 1984
+    camaras:
+      - canal: 1
+        nombre: Cámara 1
+        clave: true
+      - canal: 2
+        nombre: Cámara 2
+      - canal: 3
+        nombre: Cámara 3
+  - id: s4
+    nombre: Sucursal 4
+    dvr:
+      marca: hikvision
+      host: 10.255.255.1
+    camaras:
+      - canal: 1
+        nombre: Cámara 1
+        clave: true

@@ -8,7 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
+/dist/
 dist-ssr
 *.local
 
@@ -25,3 +25,9 @@ dist-ssr
 
 # Config real de go2rtc: lleva contraseñas de los grabadores
 go2rtc/go2rtc.yaml
+
+# Interfaz compilada y configuración local
+/web/dist/*
+!/web/dist/.gitkeep
+/monitor.yaml
+/deploy/pc-central/monitor

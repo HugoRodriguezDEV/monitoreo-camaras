@@ -13,9 +13,9 @@ Grabador (RTSP) ──Tailscale──► go2rtc (PC central) ──WebRTC/MSE─
 |---|---|
 | `src/` | Interfaz React: cuadrícula por sucursal, vista general, rotación, cámara en grande, aviso de sucursal sin conexión, reloj |
 | `public/config.json` | Sucursales, cámaras y tiempos. Se edita sin recompilar |
-| `go2rtc/go2rtc.example.yaml` | Plantilla de go2rtc para la PC central (rutas RTSP de Hikvision/Epcom/EZVIZ) |
+| `monitor.example.yaml` | Configuración de ejemplo del monitor y sus grabadores |
 | `go2rtc/go2rtc.dev.yaml` | go2rtc con cámaras de prueba para desarrollar sin grabadores |
-| `infra/pc-central/` | Script de instalación de la PC central y servicio systemd de go2rtc |
+| `deploy/pc-central/` | Instalador y servicio systemd del monitor |
 
 ## Desarrollo (sin cámaras reales)
 
@@ -43,14 +43,31 @@ Para apagar go2rtc: `docker compose -f docker-compose.dev.yml down`.
 
 Los nombres de `stream` deben coincidir con los de `streams:` en el `go2rtc.yaml`.
 
+## Monitor en Go
+
+El monitor sirve la interfaz y su configuración en el puerto 8080, sondea
+los grabadores y supervisa go2rtc. El contrato está en
+[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+
+Con el go2rtc de Docker en ejecución, usa estos comandos desde la raíz:
+
+```bash
+go run ./cmd/monitor check -config monitor.dev.yaml
+go run ./cmd/monitor run -config monitor.dev.yaml
+```
+
+`check` muestra la conectividad de las cuatro sucursales y enmascara las
+contraseñas. La IP de la cuarta sucursal está configurada para simular una caída.
+En modo externo, el monitor usa el go2rtc que ya está escuchando en el puerto 1984.
+
 ## Producción (PC central)
 
-1. `npm run build` y copiar `dist/` a `/opt/monitoreo-camaras/dist` en la PC.
-2. En la PC: `sudo infra/pc-central/instalar.sh kiosco`.
-3. Llenar `/etc/go2rtc/go2rtc.yaml` con los datos del levantamiento. Ese archivo lleva
-   contraseñas: **no se sube a git** (`go2rtc/go2rtc.yaml` está en `.gitignore`).
-4. go2rtc sirve la interfaz en `http://localhost:1984/` (`static_dir`), así que no hace
-   falta otro servidor web; el kiosco abre esa dirección.
+1. Ejecutar `make build` para compilar la interfaz y generar `dist/monitor` para Linux amd64.
+2. En la PC central, colocar el binario junto a `deploy/pc-central/instalar.sh`
+   con el nombre `monitor` y ejecutar `sudo deploy/pc-central/instalar.sh kiosco`.
+3. Editar `/etc/monitor/monitor.yaml` con los datos reales y ejecutar
+   `sudo systemctl restart monitor`.
+4. Abrir `http://localhost:8080/` para comprobar el kiosco.
 
 ## Pendiente (v2 según el plan)
 
