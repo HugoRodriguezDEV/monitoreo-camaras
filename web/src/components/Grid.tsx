@@ -8,6 +8,8 @@ type Props = {
   config: Config
   celdas: Celda[]
   onSeleccionar: (celda: Celda) => void
+  detectarPorVideo: boolean
+  sucursalesCaidas?: ReadonlySet<string>
 }
 
 /** 2×2, 3×3 o 4×4 según el número de cámaras. */
@@ -18,7 +20,7 @@ function columnas(n: number): number {
   return 4
 }
 
-export function Grid({ config, celdas, onSeleccionar }: Props) {
+export function Grid({ config, celdas, onSeleccionar, detectarPorVideo, sucursalesCaidas }: Props) {
   const [enVivo, setEnVivo] = useState<Record<string, boolean>>({})
   const [montado] = useState(() => Date.now())
   const [ahora, setAhora] = useState(() => Date.now())
@@ -52,6 +54,7 @@ export function Grid({ config, celdas, onSeleccionar }: Props) {
             stream={c.camara.stream}
             nombre={c.camara.nombre}
             sucursal={c.sucursal}
+            sucursalCaida={sucursalesCaidas?.has(c.sucursalId)}
             onSeleccionar={() => onSeleccionar(c)}
             onEnVivo={(v) => {
               setEnVivo((prev) => ({ ...prev, [c.camara.stream]: v }))
@@ -60,8 +63,8 @@ export function Grid({ config, celdas, onSeleccionar }: Props) {
           />
         ))}
       </div>
-      {sinConexion.size > 0 && (
-        <div className="aviso-desconexion">
+      {detectarPorVideo && sinConexion.size > 0 && (
+        <div className="aviso-desconexion" role="status">
           {[...sinConexion].map((s) => (
             <div key={s}>
               {s} sin conexión <span className="reintentando">· reintentando</span>

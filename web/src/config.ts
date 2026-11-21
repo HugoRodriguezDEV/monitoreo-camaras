@@ -1,5 +1,4 @@
-// Configuración del monitor. Vive en public/config.json para que se puedan
-// agregar sucursales, cámaras o cambiar el orden sin recompilar.
+// El monitor sirve la configuración en /config.json.
 
 export type Camara = {
   /** Nombre del stream en go2rtc (substream, para la cuadrícula). */
@@ -18,7 +17,7 @@ export type Sucursal = {
 }
 
 export type Config = {
-  /** Base de go2rtc. Vacío = mismo origen (go2rtc sirve la interfaz, o el proxy de Vite en desarrollo). */
+  /** Base de go2rtc. Vacío = mismo origen, a través del monitor. */
   go2rtc: string
   rotacionSegundos: number
   /** La vista general entra en la rotación junto con las sucursales. */
@@ -56,14 +55,23 @@ export function urlStream(config: Config, stream: string): string {
 
 /** Carga el reproductor de go2rtc (video-stream.js) una sola vez. */
 let reproductor: Promise<unknown> | undefined
+let reintentosReproductor = 0
 export function cargarReproductor(config: Config): Promise<unknown> {
   reproductor ??= new Promise((resolve, reject) => {
     const script = document.createElement('script')
     script.type = 'module'
-    script.src = `${config.go2rtc}/video-stream.js`
-    script.onerror = () => reject(new Error(`No se pudo cargar el reproductor desde go2rtc (${script.src})`))
+    const ruta = `${config.go2rtc}/video-stream.js`
+    script.src = reintentosReproductor ? `${ruta}?reintento=${reintentosReproductor}` : ruta
+    script.onerror = () => {
+      script.remove()
+      reject(new Error(`No se pudo cargar el reproductor desde go2rtc (${script.src})`))
+    }
     document.head.appendChild(script)
     customElements.whenDefined('video-stream').then(resolve)
+  }).catch((error: unknown) => {
+    reintentosReproductor++
+    reproductor = undefined
+    throw error
   })
   return reproductor
 }

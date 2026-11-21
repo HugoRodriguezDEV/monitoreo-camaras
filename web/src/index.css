@@ -154,6 +154,15 @@ body,
   color: var(--tenue);
 }
 
+.punto-caida {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-inline-end: 0.4em;
+  border-radius: 50%;
+  background: var(--alerta);
+}
+
 .aviso-desconexion {
   position: absolute;
   top: 1rem;

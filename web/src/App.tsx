@@ -3,6 +3,7 @@ import { CameraTile } from './components/CameraTile'
 import { Grid, type Celda } from './components/Grid'
 import { Reloj } from './components/Reloj'
 import { cargarConfig, cargarReproductor, type Config } from './config'
+import { useEstado } from './useEstado'
 
 /** 'general' o el id de una sucursal. */
 type Vista = string
@@ -14,10 +15,7 @@ export default function App() {
 
   useEffect(() => {
     cargarConfig()
-      .then(async (c) => {
-        await cargarReproductor(c)
-        setConfig(c)
-      })
+      .then(setConfig)
       .catch((e: Error) => setError(e.message))
   }, [])
 
@@ -27,6 +25,33 @@ export default function App() {
 }
 
 function Monitor({ config }: { config: Config }) {
+  const estado = useEstado()
+  const caidas = new Set(
+    estado === 'desconocido' ? [] : estado.sucursales.filter((s) => s.enLinea === false).map((s) => s.id),
+  )
+  const servidorCaido = estado !== 'desconocido' && estado.go2rtc.enLinea === false
+  const [reproductorListo, setReproductorListo] = useState(false)
+  useEffect(() => {
+    let desmontado = false
+    let reintento: ReturnType<typeof setTimeout>
+
+    function cargar() {
+      cargarReproductor(config)
+        .then(() => {
+          if (!desmontado) setReproductorListo(true)
+        })
+        .catch(() => {
+          if (!desmontado) reintento = setTimeout(cargar, 5000)
+        })
+    }
+
+    cargar()
+    return () => {
+      desmontado = true
+      clearTimeout(reintento)
+    }
+  }, [config])
+
   const secuencia = useMemo<Vista[]>(
     () => [...(config.rotarVistaGeneral ? [GENERAL] : []), ...config.sucursales.map((s) => s.id)],
     [config],
@@ -67,6 +92,9 @@ function Monitor({ config }: { config: Config }) {
   }, [config, vista])
 
   const titulo = vista === GENERAL ? 'Vista general' : config.sucursales.find((s) => s.id === vista)?.nombre
+  const avisos = config.sucursales.filter(
+    (s) => caidas.has(s.id) && (enGrande ? s.id === enGrande.sucursalId : vista === GENERAL || s.id === vista),
+  )
 
   const irA = useCallback((v: Vista) => {
     setEnGrande(undefined)
@@ -85,6 +113,7 @@ function Monitor({ config }: { config: Config }) {
           )}
           {config.sucursales.map((s) => (
             <button key={s.id} className={vista === s.id ? 'activo' : ''} onClick={() => irA(s.id)}>
+              {caidas.has(s.id) && <span className="punto-caida" role="img" aria-label="Sin conexión" />}
               {s.nombre}
             </button>
           ))}
@@ -96,7 +125,9 @@ function Monitor({ config }: { config: Config }) {
       </header>
 
       <main className="contenido">
-        {enGrande ? (
+        {!reproductorListo ? (
+          <div className="pantalla-mensaje">Conectando con el servidor de video…</div>
+        ) : enGrande ? (
           <div className="en-grande" onClick={() => setEnGrande(undefined)}>
             <CameraTile
               config={config}
@@ -107,7 +138,24 @@ function Monitor({ config }: { config: Config }) {
           </div>
         ) : (
           // key: cada vista arranca de cero el conteo de "sin conexión".
-          <Grid key={vista} config={config} celdas={celdas} onSeleccionar={setEnGrande} />
+          <Grid
+            key={vista}
+            config={config}
+            celdas={celdas}
+            onSeleccionar={setEnGrande}
+            detectarPorVideo={estado === 'desconocido'}
+            sucursalesCaidas={vista === GENERAL ? caidas : undefined}
+          />
+        )}
+        {(servidorCaido || avisos.length > 0) && (
+          <div className="aviso-desconexion" role="status">
+            {servidorCaido && <div>Servidor de video sin conexión</div>}
+            {avisos.map((s) => (
+              <div key={s.id}>
+                {s.nombre} sin conexión <span className="reintentando">· reintentando</span>
+              </div>
+            ))}
+          </div>
         )}
       </main>
     </div>
