@@ -9,5 +9,5 @@ services:
       - "8555:8555/tcp"
       - "8555:8555/udp"
     volumes:
-      - ./go2rtc/go2rtc.dev.yaml:/config/go2rtc.yaml:ro
+      - ./deploy/go2rtc.dev.yaml:/config/go2rtc.yaml:ro
     restart: unless-stopped
