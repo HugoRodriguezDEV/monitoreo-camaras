@@ -6,6 +6,7 @@ type Props = {
   stream: string
   nombre: string
   sucursal: string
+  sucursalCaida?: boolean
   onSeleccionar?: () => void
   /** Avisa cada vez que la cámara pasa de tener imagen a no tenerla, o al revés. */
   onEnVivo?: (enVivo: boolean) => void
@@ -13,7 +14,7 @@ type Props = {
 
 // El elemento <video-stream> de go2rtc se reconecta solo; aquí solo vigilamos
 // si el video avanza para saber si hay imagen.
-export function CameraTile({ config, stream, nombre, sucursal, onSeleccionar, onEnVivo }: Props) {
+export function CameraTile({ config, stream, nombre, sucursal, sucursalCaida, onSeleccionar, onEnVivo }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const [enVivo, setEnVivo] = useState(false)
   const onEnVivoRef = useRef(onEnVivo)
@@ -56,7 +57,10 @@ export function CameraTile({ config, stream, nombre, sucursal, onSeleccionar, on
       {!enVivo && <div className="tile-espera">Conectando…</div>}
       <div className="tile-etiqueta">
         <span className="tile-nombre">{nombre}</span>
-        <span className="tile-sucursal">{sucursal}</span>
+        <span className="tile-sucursal">
+          {sucursalCaida && <span className="punto-caida" role="img" aria-label="Sin conexión" />}
+          {sucursal}
+        </span>
       </div>
     </div>
   )

@@ -19,16 +19,28 @@ Grabador (RTSP) ──Tailscale──► go2rtc (PC central) ──WebRTC/MSE─
 
 ## Desarrollo (sin cámaras reales)
 
+Arranca go2rtc desde la raíz del repositorio.
+
 ```bash
-npm install
-docker compose -f docker-compose.dev.yml up -d   # go2rtc con 10 cámaras de prueba
-npm run dev                                      # http://localhost:3000
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-`s4_cam1` apunta a una IP que no existe, a propósito, para ver el aviso de
-"Sucursal 4 sin conexión". El panel de go2rtc queda en http://localhost:1984.
+Arranca el monitor en una terminal.
 
-Para apagar go2rtc: `docker compose -f docker-compose.dev.yml down`.
+```bash
+go run ./cmd/monitor run -config monitor.dev.yaml
+```
+
+Instala las dependencias de la interfaz con `npm ci` en `web/` la primera vez.
+Abre otra terminal desde la raíz y ejecuta:
+
+```bash
+cd web && npm run dev
+```
+
+Abre http://localhost:3000. La cámara `s4_c1` apunta a una IP inalcanzable
+para probar el aviso de desconexión. Para detener go2rtc, ejecuta
+`docker compose -f docker-compose.dev.yml down`.
 
 ## `config.json`
 
