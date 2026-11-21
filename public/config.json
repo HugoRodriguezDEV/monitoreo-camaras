@@ -1,0 +1,41 @@
+{
+  "go2rtc": "",
+  "rotacionSegundos": 25,
+  "rotarVistaGeneral": true,
+  "volverACuadriculaSegundos": 60,
+  "sinConexionSegundos": 15,
+  "sucursales": [
+    {
+      "id": "s1",
+      "nombre": "Sucursal 1",
+      "camaras": [
+        { "stream": "s1_cam1", "streamHd": "s1_cam1_hd", "nombre": "Entrada", "clave": true },
+        { "stream": "s1_cam2", "nombre": "Caja" },
+        { "stream": "s1_cam3", "nombre": "Bodega" },
+        { "stream": "s1_cam4", "nombre": "Estacionamiento" }
+      ]
+    },
+    {
+      "id": "s2",
+      "nombre": "Sucursal 2",
+      "camaras": [
+        { "stream": "s2_cam1", "nombre": "Entrada", "clave": true },
+        { "stream": "s2_cam2", "nombre": "Caja" }
+      ]
+    },
+    {
+      "id": "s3",
+      "nombre": "Sucursal 3",
+      "camaras": [
+        { "stream": "s3_cam1", "nombre": "Entrada", "clave": true },
+        { "stream": "s3_cam2", "nombre": "Mostrador" },
+        { "stream": "s3_cam3", "nombre": "Bodega" }
+      ]
+    },
+    {
+      "id": "s4",
+      "nombre": "Sucursal 4",
+      "camaras": [{ "stream": "s4_cam1", "nombre": "Entrada", "clave": true }]
+    }
+  ]
+}

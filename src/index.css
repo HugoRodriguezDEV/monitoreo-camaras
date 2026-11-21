@@ -1,0 +1,175 @@
+/* Pensado para verse de lejos en una tele, sin mouse ni teclado en uso normal. */
+:root {
+  --fondo: #050608;
+  --panel: #0e1116;
+  --borde: #1d232c;
+  --texto: #e8ecf1;
+  --tenue: #8a94a3;
+  --acento: #3aa0ff;
+  --alerta: #e5484d;
+  color-scheme: dark;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--fondo);
+}
+
+.pantalla-mensaje {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 2rem;
+  color: var(--tenue);
+}
+.pantalla-mensaje.error {
+  color: var(--alerta);
+  padding: 2rem;
+  text-align: center;
+}
+
+.monitor {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--borde);
+}
+.titulo {
+  font-size: 1.6rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.vistas {
+  display: flex;
+  gap: 0.4rem;
+  flex: 1;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.vistas button {
+  background: transparent;
+  color: var(--tenue);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.vistas button.activo {
+  color: var(--texto);
+  border-color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 18%, transparent);
+}
+.vistas button.rotando {
+  color: var(--acento);
+}
+.reloj {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.contenido {
+  min-height: 0;
+  position: relative;
+}
+
+.grid-wrap,
+.en-grande {
+  position: absolute;
+  inset: 0;
+}
+.grid {
+  display: grid;
+  gap: 4px;
+  height: 100%;
+  padding: 4px;
+  grid-auto-rows: 1fr;
+}
+
+.tile {
+  position: relative;
+  min-height: 0;
+  background: #000;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.en-grande .tile {
+  height: 100%;
+  border-radius: 0;
+}
+.tile-video,
+.tile-video video-stream {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tile-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.tile-espera {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--tenue);
+  font-size: 1.2rem;
+}
+.tile-etiqueta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0.6rem;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.75));
+  font-size: 1.05rem;
+  pointer-events: none;
+}
+.tile-sucursal {
+  color: var(--tenue);
+}
+
+.aviso-desconexion {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  translate: -50% 0;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.8rem 1.4rem;
+  background: var(--alerta);
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.5);
+}
+.reintentando {
+  font-weight: 400;
+  opacity: 0.85;
+}

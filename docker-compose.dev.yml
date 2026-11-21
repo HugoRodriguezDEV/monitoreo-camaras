@@ -1,0 +1,13 @@
+# Solo para desarrollo en la laptop: go2rtc con cámaras de prueba.
+#   docker compose -f docker-compose.dev.yml up -d
+#   npm run dev   →  http://localhost:3000
+services:
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    ports:
+      - "1984:1984"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    volumes:
+      - ./go2rtc/go2rtc.dev.yaml:/config/go2rtc.yaml:ro
+    restart: unless-stopped
