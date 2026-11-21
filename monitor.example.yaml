@@ -1,0 +1,67 @@
+servidor:
+  escuchar: ":8080"
+go2rtc:
+  binario: /usr/local/bin/go2rtc
+  api: "127.0.0.1:1984"
+  config: /var/lib/monitor/go2rtc.yaml
+  externo: false
+interfaz:
+  rotacion_segundos: 25
+  rotar_vista_general: true
+  volver_a_cuadricula_segundos: 60
+salud:
+  intervalo_segundos: 10
+  caido_tras_fallos: 3
+alertas:
+  telegram:
+    token: ""
+    chat_id: ""
+sucursales:
+  - id: s1
+    nombre: Sucursal Centro
+    dvr:
+      marca: hikvision
+      host: 192.0.2.1
+      puerto: 0
+      usuario: admin
+      password: CAMBIAR
+    camaras:
+      - canal: 1
+        nombre: Entrada
+        clave: true
+  - id: s2
+    nombre: Sucursal Norte
+    dvr:
+      marca: dahua
+      host: 192.0.2.2
+      puerto: 0
+      usuario: admin
+      password: CAMBIAR
+    camaras:
+      - canal: 1
+        nombre: Entrada
+        clave: true
+  - id: s3
+    nombre: Sucursal Sur
+    dvr:
+      marca: uniview
+      host: 192.0.2.3
+      puerto: 0
+      usuario: admin
+      password: CAMBIAR
+    camaras:
+      - canal: 1
+        nombre: Entrada
+        clave: true
+  - id: s4
+    nombre: Sucursal Oriente
+    dvr:
+      marca: xmeye
+      host: 192.0.2.4
+      puerto: 0
+      usuario: admin
+      password: CAMBIAR
+    camaras:
+      - canal: 1
+        nombre: Entrada
+        clave: true

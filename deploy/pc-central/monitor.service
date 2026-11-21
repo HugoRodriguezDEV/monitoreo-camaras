@@ -1,0 +1,16 @@
+[Unit]
+Description=Monitor de cámaras
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=monitor
+WorkingDirectory=/var/lib/monitor
+ExecStart=/usr/local/bin/monitor run -config /etc/monitor/monitor.yaml
+Restart=always
+RestartSec=3
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
