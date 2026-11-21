@@ -129,6 +129,13 @@ body,
   height: 100%;
   object-fit: contain;
 }
+.tile-video video::-webkit-media-controls {
+  display: none !important;
+}
+/* Indicadores propios del reproductor de go2rtc (modo y errores): la interfaz ya avisa. */
+.tile-video video-stream > div {
+  display: none !important;
+}
 .tile-espera {
   position: absolute;
   inset: 0;

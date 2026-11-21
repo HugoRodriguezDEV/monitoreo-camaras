@@ -1,6 +1,8 @@
 # go2rtc de desarrollo: cámaras de prueba generadas con ffmpeg, sin grabadores reales.
 # Mismos nombres que los streams del monitor. s4_c1 apunta a una IP que no existe
 # para probar el aviso de "sin conexión".
+# Cada fuente de prueba debe ser única (patrón o tamaño distinto): go2rtc identifica
+# las fuentes ffmpeg por su definición, y dos streams iguales se pelean el mismo proceso.
 api:
   listen: ":1984"
   origin: ""
@@ -15,9 +17,9 @@ streams:
   s1_c2: ffmpeg:virtual?video=smptebars&size=640x360#video=h264
   s1_c3: ffmpeg:virtual?video=testsrc2&size=640x360#video=h264
   s1_c4: ffmpeg:virtual?video=rgbtestsrc&size=640x360#video=h264
-  s2_c1: ffmpeg:virtual?video=testsrc2&size=640x360#video=h264
-  s2_c2: ffmpeg:virtual?video=smptebars&size=640x360#video=h264
-  s3_c1: ffmpeg:virtual?video=testsrc&size=640x360#video=h264
-  s3_c2: ffmpeg:virtual?video=rgbtestsrc&size=640x360#video=h264
-  s3_c3: ffmpeg:virtual?video=testsrc2&size=640x360#video=h264
+  s2_c1: ffmpeg:virtual?video=testsrc2&size=704x480#video=h264
+  s2_c2: ffmpeg:virtual?video=smptebars&size=704x480#video=h264
+  s3_c1: ffmpeg:virtual?video=testsrc&size=704x480#video=h264
+  s3_c2: ffmpeg:virtual?video=rgbtestsrc&size=704x480#video=h264
+  s3_c3: ffmpeg:virtual?video=testsrc2&size=800x448#video=h264
   s4_c1: rtsp://admin:nada@10.255.255.1:554/Streaming/Channels/102

@@ -1,3 +1,6 @@
+servidor:
+  escuchar: "127.0.0.1:8090"
+
 go2rtc:
   externo: true
   api: "127.0.0.1:1984"

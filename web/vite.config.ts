@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // El monitor sirve la configuración, el estado y el reproductor bajo el mismo origen.
-const MONITOR = process.env.MONITOR_URL ?? 'http://localhost:8080'
+const MONITOR = process.env.MONITOR_URL ?? 'http://localhost:8090'
 
 export default defineConfig({
   plugins: [react()],

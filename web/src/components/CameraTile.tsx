@@ -12,8 +12,13 @@ type Props = {
   onEnVivo?: (enVivo: boolean) => void
 }
 
-// El elemento <video-stream> de go2rtc se reconecta solo; aquí solo vigilamos
-// si el video avanza para saber si hay imagen.
+/** Sin avance del video durante este tiempo, se reconecta la cámara. */
+const REINTENTO_MS = 10_000
+
+// El elemento <video-stream> de go2rtc se reconecta solo cuando se cierra el
+// WebSocket, pero no cuando el socket queda abierto sin video (pasa, por ejemplo,
+// si la misma cámara se desconecta y se vuelve a conectar al rotar). Por eso aquí
+// se vigila que el video avance y, si se atora, se recrea el reproductor.
 export function CameraTile({ config, stream, nombre, sucursal, sucursalCaida, onSeleccionar, onEnVivo }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const [enVivo, setEnVivo] = useState(false)
@@ -23,15 +28,27 @@ export function CameraTile({ config, stream, nombre, sucursal, sucursalCaida, on
   })
 
   useEffect(() => {
-    const el = document.createElement('video-stream') as HTMLElement & { src: string }
-    host.current?.appendChild(el)
-    el.src = urlStream(config, stream)
-
+    let el: HTMLElement & { src: string }
     let ultimoTiempo = -1
     let ultimoAvance = 0
+    function conectar() {
+      el = document.createElement('video-stream') as HTMLElement & { src: string }
+      host.current?.appendChild(el)
+      el.src = urlStream(config, stream)
+      ultimoTiempo = -1
+      ultimoAvance = Date.now()
+    }
+    conectar()
+
     let estado = false
     const timer = setInterval(() => {
+      if (Date.now() - ultimoAvance > REINTENTO_MS) {
+        el.remove()
+        conectar()
+      }
       const video = el.querySelector('video')
+      // En la tele no se usan los controles del navegador.
+      if (video?.controls) video.controls = false
       const t = video?.currentTime ?? -1
       if (t !== ultimoTiempo) {
         ultimoTiempo = t

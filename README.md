@@ -42,22 +42,23 @@ Abre http://localhost:3000. La cámara `s4_c1` apunta a una IP inalcanzable
 para probar el aviso de desconexión. Para detener go2rtc, ejecuta
 `docker compose -f docker-compose.dev.yml down`.
 
-## `config.json`
+## Configuración (`monitor.yaml`)
 
-| Clave | Default | Qué hace |
-|---|---|---|
-| `go2rtc` | `""` | Base de go2rtc. Vacío = mismo origen |
-| `rotacionSegundos` | 25 | Cada cuánto cambia de vista |
-| `rotarVistaGeneral` | true | La vista general entra en la rotación |
-| `volverACuadriculaSegundos` | 60 | La cámara en grande vuelve sola a la cuadrícula |
-| `sinConexionSegundos` | 15 | Sin imagen en todas las cámaras de una sucursal → aviso |
-| `sucursales[].camaras[]` | — | `stream` (substream en go2rtc), `streamHd` (principal, opcional), `nombre`, `clave` (sale en la vista general) |
+Todo se configura en un solo archivo: sucursales, DVR (marca, IP, usuario y contraseña),
+cámaras por canal, tiempos de rotación, sondeo y alertas de Telegram. El monitor genera de ahí
+la configuración de go2rtc y la de la interfaz (`/config.json`, sin contraseñas).
 
-Los nombres de `stream` deben coincidir con los de `streams:` en el `go2rtc.yaml`.
+- Ejemplo comentado: [`monitor.example.yaml`](monitor.example.yaml).
+- Desarrollo con cámaras de prueba: [`monitor.dev.yaml`](monitor.dev.yaml).
+- Marcas soportadas: `hikvision` (Hik-Connect, Epcom, EZVIZ), `dahua` y clones, `uniview`,
+  `xmeye` (DVR genéricos), `onvif` y `rtsp` genérico. Detalle en
+  [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+- Antes de instalar, `monitor check -config monitor.yaml` sondea cada DVR e imprime las URLs
+  para probarlas en VLC.
 
 ## Monitor en Go
 
-El monitor sirve la interfaz y su configuración en el puerto 8080, sondea
+El monitor sirve la interfaz y su configuración en el puerto 8080 (8090 en `monitor.dev.yaml`), sondea
 los grabadores y supervisa go2rtc. El contrato está en
 [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
