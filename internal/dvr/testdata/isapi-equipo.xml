@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DeviceInfo version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+  <deviceName>Grabador</deviceName><deviceID>255</deviceID>
+  <model>DS-7204HQHI-K1</model><serialNumber>DS7204HQHI20230101AAWR000001</serialNumber>
+  <macAddress>84:9A:40:12:34:56</macAddress><firmwareVersion>V4.30.120</firmwareVersion>
+  <firmwareReleasedDate>build 220914</firmwareReleasedDate><deviceType>DVR</deviceType>
+</DeviceInfo>

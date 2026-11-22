@@ -1,0 +1,7 @@
+table.Network.DefaultInterface=eth0
+table.Network.eth0.DhcpEnable=false
+table.Network.eth0.IPAddress=192.168.1.108
+table.Network.eth0.PhysicalAddress=3C-EF-8C-12-34-56
+table.Network.eth0.SubnetMask=255.255.255.0
+table.Network.eth1.DhcpEnable=true
+table.Network.eth1.PhysicalAddress=3C-EF-8C-12-34-57

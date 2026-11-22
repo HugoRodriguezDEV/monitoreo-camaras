@@ -1,0 +1,6 @@
+
+Interfaz: 192.168.1.10 --- 0x9
+  Dirección de Internet          Dirección física      Tipo
+  192.168.1.108           02-0A-8C-12-34-56     dinámico
+  192.168.1.255           ff-ff-ff-ff-ff-ff     estático
+  224.0.0.22              01-00-5e-00-00-16     estático

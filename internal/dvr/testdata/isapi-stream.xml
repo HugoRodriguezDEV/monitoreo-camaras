@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StreamingChannel version="2.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+ <id>102</id><channelName>Stream 02</channelName><enabled>true</enabled>
+ <Video><enabled>true</enabled><videoInputChannelID>1</videoInputChannelID><videoCodecType>H.265</videoCodecType><videoResolutionWidth>704</videoResolutionWidth><videoResolutionHeight>576</videoResolutionHeight><maxFrameRate>2500</maxFrameRate></Video>
+</StreamingChannel>
