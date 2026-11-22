@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -21,10 +22,10 @@ func TestLeer(t *testing.T) {
 	if cfg.Servidor.Escuchar != ":8080" ||
 		cfg.Go2rtc.API != "127.0.0.1:1984" ||
 		cfg.Go2rtc.Binario != "/usr/local/bin/go2rtc" ||
-		cfg.Go2rtc.Config != "/var/lib/monitor/go2rtc.yaml" ||
+		cfg.Go2rtc.Config != filepath.Join(DatosCentral(), "go2rtc.yaml") ||
 		cfg.Go2rtc.Externo ||
 		cfg.Interfaz != (Interfaz{25, true, 60}) ||
-		cfg.Salud != (Salud{10, 3}) {
+		cfg.Salud != (Salud{10, 3, 3}) {
 		t.Fatal("Los valores predeterminados no coinciden con el contrato")
 	}
 	cfg, err = Leer(strings.NewReader("interfaz: {rotar_vista_general: false}\ngo2rtc: {externo: true}\nsucursales:\n" + sucursalValida))
@@ -36,7 +37,6 @@ func TestLeer(t *testing.T) {
 func TestErroresDeConfiguracion(t *testing.T) {
 	base := "sucursales:\n" + sucursalValida
 	casos := []struct{ nombre, yaml, errorCampo string }{
-		{"Sin sucursales", "sucursales: []\n", "sucursales"},
 		{"ID inválido", strings.Replace(base, "centro_1", "Centro-1", 1), "id"},
 		{"ID repetido", base + sucursalValida, "centro_1\", id"},
 		{"Marca desconocida", strings.Replace(base, "hikvision", "otra", 1), "centro_1\", dvr.marca"},

@@ -16,9 +16,11 @@ import (
 	"time"
 
 	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/alertas"
+	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/almacen"
 	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/config"
 	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/go2rtc"
 	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/marcas"
+	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/recuperacion"
 	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/salud"
 	"github.com/HugoRodriguezDEV/monitoreo-camaras/internal/servidor"
 )
@@ -34,7 +36,7 @@ func main() {
 }
 
 func ejecutar(ctx context.Context, args []string) error {
-	const uso = "Uso: monitor run|check|go2rtc [-config monitor.yaml]"
+	const uso = "Uso: monitor run|check|go2rtc [-config monitor.yaml]\n     monitor instalador [-datos directorio] [-no-abrir]"
 	if len(args) == 0 {
 		return errors.New(uso)
 	}
@@ -42,6 +44,8 @@ func ejecutar(ctx context.Context, args []string) error {
 	case "-h", "--help":
 		fmt.Println(uso)
 		return nil
+	case "instalador":
+		return iniciarInstalador(ctx, args[1:])
 	case "run", "check", "go2rtc":
 	default:
 		return fmt.Errorf("subcomando desconocido %q\n%s", args[0], uso)
@@ -63,10 +67,15 @@ func ejecutar(ctx context.Context, args []string) error {
 	} else if err != nil || opciones.NArg() != 0 {
 		return fmt.Errorf("opciones inválidas\n%s", uso)
 	}
-	cfg, err := config.Cargar(*ruta)
+	cfg, err := config.CargarSistema(*ruta)
 	if err != nil {
 		return err
 	}
+	a, err := almacen.Abrir(cfg)
+	if err != nil {
+		return err
+	}
+	cfg, _ = a.Actual()
 	switch args[0] {
 	case "check":
 		comprobar(ctx, cfg, mostrar)
@@ -81,7 +90,7 @@ func ejecutar(ctx context.Context, args []string) error {
 		}
 		return nil
 	default:
-		return iniciar(ctx, cfg)
+		return iniciar(ctx, a)
 	}
 }
 
@@ -113,7 +122,10 @@ func comprobar(ctx context.Context, cfg config.Config, mostrar bool) {
 	}
 }
 
-func iniciar(ctx context.Context, cfg config.Config) error {
+func iniciar(ctx context.Context, a *almacen.Almacen) error {
+	cambios, desuscribir := a.Suscribir()
+	defer desuscribir()
+	cfg, version := a.Actual()
 	oyente, err := net.Listen("tcp", cfg.Servidor.Escuchar)
 	if err != nil {
 		return fmt.Errorf("no se pudo escuchar en %q", cfg.Servidor.Escuchar)
@@ -126,41 +138,92 @@ func iniciar(ctx context.Context, cfg config.Config) error {
 	ctx, cancelar := context.WithCancel(ctx)
 	defer cancelar()
 	var avisos sync.WaitGroup
+	avisar := func(mensaje string) {
+		log.Print(mensaje)
+		actual, _ := a.Actual()
+		telegram := actual.Alertas.Telegram
+		if telegram.Token == "" {
+			return
+		}
+		avisos.Go(func() {
+			if err := alertas.Enviar(ctx, telegram, mensaje); err != nil && ctx.Err() == nil {
+				log.Printf("No se pudo enviar la alerta: %v", err)
+			}
+		})
+	}
 	vigilancia := salud.Nuevo(cfg, salud.Sondas{}, func(c salud.Cambio) {
 		mensaje := fmt.Sprintf("🔴 %s sin conexión", c.Nombre)
 		if c.EnLinea {
 			mensaje = fmt.Sprintf("🟢 %s de vuelta (caída %d min)", c.Nombre, int(c.DuracionCaida.Round(time.Minute)/time.Minute))
 		}
-		log.Print(mensaje)
-		if cfg.Alertas.Telegram.Token != "" {
-			avisos.Go(func() {
-				if err := alertas.Enviar(ctx, cfg.Alertas.Telegram, mensaje); err != nil && ctx.Err() == nil {
-					log.Printf("No se pudo enviar la alerta: %v", err)
-				}
-			})
-		}
+		avisar(mensaje)
 	})
-	srv := &http.Server{
-		Handler:           servidor.Nuevo(cfg, vigilancia.Estado),
-		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       time.Minute,
-	}
+	vigilancia.Actualizar(cfg.Sucursales, version)
+	reinicios := make(chan struct{}, 1)
+	recuperador := recuperacion.Nuevo(a, vigilancia.Estado, avisar)
 	var grupo sync.WaitGroup
 	grupo.Go(func() { vigilancia.Ejecutar(ctx) })
-	grupo.Go(func() { go2rtc.Supervisar(ctx, cfg.Go2rtc) })
-	grupo.Go(func() {
+	grupo.Go(func() { go2rtc.SupervisarConReinicio(ctx, cfg.Go2rtc, reinicios) })
+	grupo.Go(func() { recargar(ctx, a, vigilancia, cambios, reinicios, version) })
+	grupo.Go(func() { recuperador.Ejecutar(ctx) })
+	log.Printf("Monitor escuchando en %s", oyente.Addr())
+	err = servirHTTP(ctx, oyente, servidor.NuevaCentral(a, vigilancia.Estado))
+	cancelar()
+	grupo.Wait()
+	avisos.Wait()
+	return err
+}
+
+func recargar(ctx context.Context, a *almacen.Almacen, vigilancia *salud.Monitor, cambios <-chan struct{}, reinicios chan<- struct{}, version uint64) {
+	var reintento <-chan time.Time
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case _, abierto := <-cambios:
+			if !abierto {
+				return
+			}
+		case <-reintento:
+			reintento = nil
+		}
+		cfg, nueva := a.Actual()
+		if nueva == version {
+			continue
+		}
+		if err := go2rtc.Preparar(cfg); err != nil {
+			log.Printf("No se pudo aplicar la configuración: %v", err)
+			reintento = time.After(time.Second)
+			continue
+		}
+		if !cfg.Go2rtc.Externo {
+			select {
+			case reinicios <- struct{}{}:
+			default:
+			}
+		}
+		vigilancia.Actualizar(cfg.Sucursales, nueva)
+		version = nueva
+	}
+}
+
+func servirHTTP(ctx context.Context, oyente net.Listener, handler http.Handler) error {
+	ctx, cancelar := context.WithCancel(ctx)
+	defer cancelar()
+	srv := &http.Server{Handler: handler, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: time.Minute}
+	terminado := make(chan struct{})
+	go func() {
+		defer close(terminado)
 		<-ctx.Done()
 		limite, fin := context.WithTimeout(context.Background(), 5*time.Second)
 		defer fin()
 		if err := srv.Shutdown(limite); err != nil {
 			_ = srv.Close()
 		}
-	})
-	log.Printf("Monitor escuchando en %s", oyente.Addr())
-	err = srv.Serve(oyente)
+	}()
+	err := srv.Serve(oyente)
 	cancelar()
-	grupo.Wait()
-	avisos.Wait()
+	<-terminado
 	if !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("el servidor HTTP se detuvo inesperadamente")
 	}

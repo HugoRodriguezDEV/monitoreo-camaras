@@ -6,7 +6,9 @@ import (
 	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +17,7 @@ import (
 )
 
 type Config struct {
+	Datos      string
 	Servidor   Servidor
 	Go2rtc     Go2rtc
 	Interfaz   Interfaz
@@ -30,65 +33,116 @@ type Go2rtc struct {
 	Externo bool
 }
 type Interfaz struct {
-	RotacionSegundos          int  `yaml:"rotacion_segundos"`
-	RotarVistaGeneral         bool `yaml:"rotar_vista_general"`
-	VolverACuadriculaSegundos int  `yaml:"volver_a_cuadricula_segundos"`
+	RotacionSegundos          int  `yaml:"rotacion_segundos" json:"rotacionSegundos"`
+	RotarVistaGeneral         bool `yaml:"rotar_vista_general" json:"rotarVistaGeneral"`
+	VolverACuadriculaSegundos int  `yaml:"volver_a_cuadricula_segundos" json:"volverACuadriculaSegundos"`
 }
 type Salud struct {
-	IntervaloSegundos int `yaml:"intervalo_segundos"`
-	CaidoTrasFallos   int `yaml:"caido_tras_fallos"`
+	IntervaloSegundos    int `yaml:"intervalo_segundos"`
+	CaidoTrasFallos      int `yaml:"caido_tras_fallos"`
+	RecuperarTrasMinutos int `yaml:"recuperar_tras_minutos"`
 }
-type Alertas struct{ Telegram Telegram }
+type Alertas struct {
+	Telegram Telegram `json:"telegram"`
+}
 type Telegram struct {
-	Token  string
-	ChatID string `yaml:"chat_id"`
+	Token  string `json:"token"`
+	ChatID string `yaml:"chat_id" json:"chatId"`
 }
 type Sucursal struct {
-	ID      string
-	Nombre  string
-	DVR     DVR
-	Camaras []Camara
+	ID      string   `json:"id"`
+	Nombre  string   `json:"nombre"`
+	DVR     DVR      `json:"dvr"`
+	Camaras []Camara `json:"camaras"`
+	Huella  *Huella  `json:"huella,omitempty"`
 }
+type Huella struct {
+	MAC         string    `json:"mac"`
+	Serie       string    `json:"serie"`
+	Modelo      string    `json:"modelo"`
+	Marca       string    `json:"marca"`
+	Actualizada time.Time `json:"actualizada"`
+}
+
 type DVR struct {
-	Marca         string
-	Host          string
-	Puerto        int
-	Usuario       string
-	Password      string
-	RutaSub       string `yaml:"ruta_sub"`
-	RutaPrincipal string `yaml:"ruta_principal"`
+	Marca         string `json:"marca"`
+	Host          string `json:"host"`
+	Puerto        int    `json:"puerto"`
+	Usuario       string `json:"usuario"`
+	Password      string `json:"password"`
+	RutaSub       string `yaml:"ruta_sub" json:"rutaSub"`
+	RutaPrincipal string `yaml:"ruta_principal" json:"rutaPrincipal"`
 }
 type Camara struct {
-	Canal  int
-	Nombre string
-	Clave  bool
+	Canal  int    `json:"canal"`
+	Nombre string `json:"nombre"`
+	Clave  bool   `json:"clave"`
 }
 
 func Cargar(ruta string) (Config, error) {
+	cfg, err := CargarSistema(ruta)
+	if err != nil {
+		return cfg, err
+	}
+	return cfg, ValidarSucursales(cfg.Sucursales)
+}
+
+// CargarSistema delega la validación de sucursales al almacén durante la migración.
+func CargarSistema(ruta string) (Config, error) {
 	archivo, err := os.Open(ruta)
 	if err != nil {
 		return Config{}, fmt.Errorf("no se pudo abrir la configuración %q", ruta)
 	}
 	defer archivo.Close()
-	return Leer(archivo)
+	return leerSistema(archivo)
+}
+
+func DatosUsuario() string {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		dir, _ = os.UserHomeDir()
+	}
+	return filepath.Join(dir, "monitor-camaras")
+}
+
+func DatosCentral() string {
+	if runtime.GOOS == "windows" {
+		return DatosUsuario()
+	}
+	return "/var/lib/monitor"
 }
 
 func Leer(r io.Reader) (Config, error) {
+	cfg, err := leerSistema(r)
+	if err != nil {
+		return cfg, err
+	}
+	return cfg, ValidarSucursales(cfg.Sucursales)
+}
+
+func leerSistema(r io.Reader) (Config, error) {
 	cfg := Config{
+		Datos:    DatosCentral(),
 		Servidor: Servidor{Escuchar: ":8080"},
-		Go2rtc:   Go2rtc{Binario: "/usr/local/bin/go2rtc", API: "127.0.0.1:1984", Config: "/var/lib/monitor/go2rtc.yaml"},
+		Go2rtc:   Go2rtc{Binario: "/usr/local/bin/go2rtc", API: "127.0.0.1:1984"},
 		Interfaz: Interfaz{25, true, 60},
-		Salud:    Salud{10, 3},
+		Salud:    Salud{10, 3, 3},
 	}
 	dec := yaml.NewDecoder(r)
-	if err := dec.Decode(&cfg); err != nil {
+	if err := dec.Decode(&cfg); err != nil && err != io.EOF {
 		return Config{}, fmt.Errorf("no se pudo leer la configuración YAML")
 	}
 	var adicional yaml.Node
 	if err := dec.Decode(&adicional); err != io.EOF {
 		return Config{}, fmt.Errorf("se esperaba un solo documento YAML")
 	}
-	return cfg, cfg.Validar()
+	if cfg.Datos == "" {
+		cfg.Datos = DatosCentral()
+	}
+	if cfg.Go2rtc.Config == "" {
+		cfg.Go2rtc.Config = filepath.Join(cfg.Datos, "go2rtc.yaml")
+	}
+	return cfg, cfg.ValidarSistema()
 }
 
 var idValido = regexp.MustCompile(`^[a-z0-9_]+$`)
@@ -112,9 +166,13 @@ func (d DVR) Direccion() string {
 }
 
 func (c Config) Validar() error {
-	if len(c.Sucursales) == 0 {
-		return fmt.Errorf("sucursales: se requiere al menos una sucursal")
+	if err := c.ValidarSistema(); err != nil {
+		return err
 	}
+	return ValidarSucursales(c.Sucursales)
+}
+
+func (c Config) ValidarSistema() error {
 	hostAPI, puertoAPI, err := net.SplitHostPort(c.Go2rtc.API)
 	puerto, errPuerto := strconv.Atoi(puertoAPI)
 	if err != nil || errPuerto != nil || puerto < 1 || puerto > 65535 ||
@@ -127,10 +185,17 @@ func (c Config) Validar() error {
 	if c.Salud.CaidoTrasFallos < 1 || c.Salud.CaidoTrasFallos > math.MaxInt/c.Salud.IntervaloSegundos {
 		return fmt.Errorf("salud.caido_tras_fallos: fuera de rango")
 	}
+	if c.Salud.RecuperarTrasMinutos < 0 || int64(c.Salud.RecuperarTrasMinutos) > math.MaxInt64/int64(time.Minute) {
+		return fmt.Errorf("salud.recuperar_tras_minutos: fuera de rango")
+	}
+	return nil
+}
+
+func ValidarSucursales(sucursales []Sucursal) error {
 	ids := make(map[string]bool)
-	for i, s := range c.Sucursales {
+	for i, s := range sucursales {
 		if !idValido.MatchString(s.ID) {
-			return fmt.Errorf("sucursal %d, id %q: debe cumplir [a-z0-9_]+", i+1, s.ID)
+			return fmt.Errorf("sucursal %d, id: debe cumplir [a-z0-9_]+", i+1)
 		}
 		if ids[s.ID] {
 			return fmt.Errorf("sucursal %q, id: repetido", s.ID)
@@ -143,7 +208,7 @@ func (c Config) Validar() error {
 				return fmt.Errorf("sucursal %q, dvr.ruta_sub: obligatoria para rtsp", s.ID)
 			}
 		default:
-			return fmt.Errorf("sucursal %q, dvr.marca: marca desconocida %q", s.ID, s.DVR.Marca)
+			return fmt.Errorf("sucursal %q, dvr.marca: marca desconocida", s.ID)
 		}
 		if strings.TrimSpace(s.DVR.Host) == "" {
 			return fmt.Errorf("sucursal %q, dvr.host: obligatorio", s.ID)

@@ -31,3 +31,5 @@ go2rtc/go2rtc.yaml
 !/web/dist/.gitkeep
 /monitor.yaml
 /deploy/pc-central/monitor
+
+/.datos-dev/

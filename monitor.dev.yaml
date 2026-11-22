@@ -1,3 +1,5 @@
+datos: ./.datos-dev
+
 servidor:
   escuchar: "127.0.0.1:8090"
 
