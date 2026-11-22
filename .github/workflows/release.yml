@@ -1,0 +1,37 @@
+name: Release
+
+# Publica los binarios al crear una etiqueta: git tag v0.1.0 && git push --tags
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: npm ci && npm run build
+        working-directory: web
+      - run: go test ./...
+      - name: Compilar
+        run: |
+          for arch in amd64 arm64; do
+            GOOS=linux GOARCH=$arch go build -trimpath -ldflags "-s -w" -o "dist/monitor-linux-$arch" ./cmd/monitor
+          done
+          cp monitor.example.yaml deploy/pc-central/instalar.sh deploy/pc-central/monitor.service dist/
+          cd dist && sha256sum monitor-linux-* > SHA256SUMS
+      - name: Publicar release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --title "$GITHUB_REF_NAME"

@@ -1,7 +1,16 @@
 # Monitoreo de cámaras
 
-Una sola pantalla con las cámaras en vivo de las 4 sucursales, 24/7, desde una PC
-Linux. El plan completo está en [`docs/PLAN.md`](docs/PLAN.md).
+Muestra en una sola pantalla, 24/7, las cámaras en vivo de varias sucursales, aunque cada
+una tenga un DVR de marca distinta y esté en otra red. Corre en una PC Linux en modo kiosco.
+
+- Un solo binario de Go (`monitor`) con la interfaz web incluida.
+- El video lo mueve [go2rtc](https://github.com/AlexxIT/go2rtc): RTSP, ONVIF y DVR XMEye.
+- Marcas: Hikvision (Hik-Connect, Epcom, EZVIZ), Dahua y clones, Uniview, XMEye, ONVIF y RTSP genérico.
+- Las sucursales se conectan por [Tailscale](https://tailscale.com): los DVR nunca se exponen a internet.
+- Cuadrícula por sucursal, vista general, rotación automática, cámara en grande, aviso de
+  sucursal caída y alertas por Telegram.
+
+La arquitectura completa está en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
 ```
 Grabador (RTSP) ──Tailscale──► go2rtc (PC central) ──WebRTC/MSE──► esta interfaz (Chromium kiosco)
@@ -86,3 +95,7 @@ En modo externo, el monitor usa el go2rtc que ya está escuchando en el puerto 1
 
 - Control con teclado o control remoto (flechas para cambiar de sucursal).
 - Acceso desde el celular de los dueños por la VPN.
+
+## Licencia
+
+[MIT](LICENSE).
