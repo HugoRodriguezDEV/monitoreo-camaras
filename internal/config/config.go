@@ -65,9 +65,12 @@ type Huella struct {
 }
 
 type DVR struct {
-	Marca         string `json:"marca"`
-	Host          string `json:"host"`
-	Puerto        int    `json:"puerto"`
+	Marca  string `json:"marca"`
+	Host   string `json:"host"`
+	Puerto int    `json:"puerto"`
+	// PuertoWeb es el de la API HTTP del DVR (ISAPI, CGI, ONVIF); Puerto es el del video.
+	// 0 = el de la marca: 8899 en xmeye (ONVIF de los Xiongmai), 80 en las demás.
+	PuertoWeb     int    `yaml:"puerto_web" json:"puertoWeb"`
 	Usuario       string `json:"usuario"`
 	Password      string `json:"password"`
 	RutaSub       string `yaml:"ruta_sub" json:"rutaSub"`
@@ -161,6 +164,16 @@ func (d DVR) PuertoEfectivo() int {
 	}
 }
 
+func (d DVR) PuertoWebEfectivo() int {
+	if d.PuertoWeb != 0 {
+		return d.PuertoWeb
+	}
+	if d.Marca == "xmeye" {
+		return 8899
+	}
+	return 80
+}
+
 func (d DVR) Direccion() string {
 	return net.JoinHostPort(strings.Trim(d.Host, "[]"), strconv.Itoa(d.PuertoEfectivo()))
 }
@@ -215,6 +228,9 @@ func ValidarSucursales(sucursales []Sucursal) error {
 		}
 		if s.DVR.Puerto < 0 || s.DVR.Puerto > 65535 {
 			return fmt.Errorf("sucursal %q, dvr.puerto: fuera de rango", s.ID)
+		}
+		if s.DVR.PuertoWeb < 0 || s.DVR.PuertoWeb > 65535 {
+			return fmt.Errorf("sucursal %q, dvr.puerto_web: fuera de rango", s.ID)
 		}
 		if len(s.Camaras) == 0 {
 			return fmt.Errorf("sucursal %q, camaras: se requiere al menos una cámara", s.ID)

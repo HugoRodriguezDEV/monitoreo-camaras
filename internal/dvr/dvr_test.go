@@ -30,7 +30,7 @@ func clientePrueba(t *testing.T, marca, direccion, clave string) Cliente {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := Nuevo(config.DVR{Marca: marca, Host: host, Puerto: puerto, Usuario: `admin"`, Password: clave})
+	c, err := Nuevo(config.DVR{Marca: marca, Host: host, PuertoWeb: puerto, Usuario: `admin"`, Password: clave})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func TestDVRFalsoEjecutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := Nuevo(config.DVR{Marca: marca, Host: host, Puerto: puerto, Usuario: "admin", Password: "admin123"})
+	c, err := Nuevo(config.DVR{Marca: marca, Host: host, PuertoWeb: puerto, Usuario: "admin", Password: "admin123"})
 	if err != nil {
 		t.Fatal(err)
 	}

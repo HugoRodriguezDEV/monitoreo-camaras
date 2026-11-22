@@ -182,7 +182,7 @@ func (i *instaladorAPI) progreso(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *instaladorAPI) clienteDVR(w http.ResponseWriter, d config.DVR) dvr.Cliente {
-	if strings.TrimSpace(d.Host) == "" || d.Puerto < 0 || d.Puerto > 65535 {
+	if strings.TrimSpace(d.Host) == "" || d.Puerto < 0 || d.Puerto > 65535 || d.PuertoWeb < 0 || d.PuertoWeb > 65535 {
 		fallo(w, 400, "Indica el host y un puerto válido del DVR")
 		return nil
 	}
@@ -229,15 +229,16 @@ func (i *instaladorAPI) foto(w http.ResponseWriter, r *http.Request) {
 		fallo(w, 400, "Indica un canal válido")
 		return
 	}
-	puerto := 0
-	if q.Get("puerto") != "" {
-		puerto, err = strconv.Atoi(q.Get("puerto"))
-		if err != nil {
-			fallo(w, 400, "Indica un puerto válido")
-			return
+	puertos := map[string]int{"puerto": 0, "puertoWeb": 0}
+	for nombre := range puertos {
+		if q.Get(nombre) != "" {
+			if puertos[nombre], err = strconv.Atoi(q.Get(nombre)); err != nil {
+				fallo(w, 400, "Indica un puerto válido")
+				return
+			}
 		}
 	}
-	cliente := i.clienteDVR(w, config.DVR{Host: q.Get("host"), Marca: q.Get("marca"), Puerto: puerto, Usuario: q.Get("usuario"), Password: r.Header.Get("X-DVR-Password")})
+	cliente := i.clienteDVR(w, config.DVR{Host: q.Get("host"), Marca: q.Get("marca"), Puerto: puertos["puerto"], PuertoWeb: puertos["puertoWeb"], Usuario: q.Get("usuario"), Password: r.Header.Get("X-DVR-Password")})
 	if cliente == nil {
 		return
 	}

@@ -26,11 +26,7 @@ type equipo struct {
 }
 
 func nuevo(d config.DVR) (Cliente, error) {
-	puerto := d.Puerto
-	if puerto == 0 {
-		puerto = 80
-	}
-	e := equipo{d, "http://" + net.JoinHostPort(strings.Trim(d.Host, "[]"), strconv.Itoa(puerto))}
+	e := equipo{d, "http://" + net.JoinHostPort(strings.Trim(d.Host, "[]"), strconv.Itoa(d.PuertoWebEfectivo()))}
 	switch d.Marca {
 	case "hikvision":
 		return hikvision{e}, nil
