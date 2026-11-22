@@ -59,8 +59,4 @@ type Cliente interface {
 // ONVIF si el DVR lo tiene; para "rtsp" regresa un cliente cuyas operaciones dan
 // ErrNoSoportado salvo Identificar, que responde lo mínimo (marca y canales configurados
 // no aplican: lista vacía).
-var Nuevo func(d config.DVR) (Cliente, error) = nuevoNoImplementado
-
-func nuevoNoImplementado(config.DVR) (Cliente, error) {
-	return nil, ErrNoSoportado
-}
+var Nuevo func(d config.DVR) (Cliente, error) = nuevo

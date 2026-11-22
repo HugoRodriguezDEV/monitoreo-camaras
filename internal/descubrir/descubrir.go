@@ -38,11 +38,7 @@ type Opciones struct {
 var PuertosDVR = []int{80, 554, 8000, 8899, 34567, 37777}
 
 // Buscar barre las redes y regresa los hallazgos ordenados por IP. Respeta ctx.
-var Buscar func(ctx context.Context, op Opciones) ([]Hallazgo, error) = buscarNoImplementado
-
-func buscarNoImplementado(context.Context, Opciones) ([]Hallazgo, error) {
-	return nil, nil
-}
+var Buscar func(ctx context.Context, op Opciones) ([]Hallazgo, error) = buscar
 
 // RedesLocales regresa las redes IPv4 privadas de las interfaces de esta máquina (/24).
-var RedesLocales func() []netip.Prefix = func() []netip.Prefix { return nil }
+var RedesLocales func() []netip.Prefix = redesLocales
