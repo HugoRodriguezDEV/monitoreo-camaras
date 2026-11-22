@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "MonitorCamaras-Instalador",
+  "outputfilename": "MonitorCamaras-Instalador",
+  "frontend:dir": "../../web",
+  "frontend:install": "npm ci",
+  "frontend:build": "npm run build",
+  "info": {
+    "productName": "Monitor de cámaras — Instalador",
+    "productVersion": "1.0.0",
+    "comments": "Asistente para configurar sucursales"
+  }
+}

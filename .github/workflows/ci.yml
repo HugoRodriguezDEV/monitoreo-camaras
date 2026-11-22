@@ -54,3 +54,33 @@ jobs:
         with:
           name: monitor
           path: dist/
+
+  windows:
+    name: Monitor e instalador para Windows
+    runs-on: windows-latest
+    env:
+      CGO_ENABLED: '0'
+      GOOS: windows
+      GOARCH: amd64
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: npm ci && npm run build
+        working-directory: web
+      - name: Compilar para Windows
+        run: |
+          go build -tags desktop,production -ldflags '-H windowsgui' -o dist/MonitorCamaras-Instalador.exe ./cmd/instalador
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -o dist/monitor-windows-amd64.exe ./cmd/monitor
+      - uses: actions/upload-artifact@v7
+        with:
+          name: monitor-windows
+          path: dist/*.exe
+          if-no-files-found: error

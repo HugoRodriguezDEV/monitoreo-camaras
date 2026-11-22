@@ -101,6 +101,45 @@ sucursales. El asistente también puede exportarlas a un archivo cuando no hay c
 Puedes usar `-datos <directorio>` para cambiar dónde guarda el vínculo y `-no-abrir` para
 abrir manualmente la URL que imprime.
 
+## App de instalación (Windows)
+
+1. Abre la sección **Assets** de la última publicación y descarga **MonitorCamaras-Instalador.exe**. La versión portable se puede abrir desde Descargas. Si prefieres instalarla y tener un acceso en el menú Inicio, descarga **MonitorCamaras-Instalador-Setup.exe**. [Publicaciones del proyecto](https://github.com/HugoRodriguezDEV/monitoreo-camaras/releases/latest)
+2. Haz doble clic en el archivo. Si Windows muestra el aviso de SmartScreen porque el ejecutable aún no está firmado, selecciona **Más información → Ejecutar de todas formas** después de comprobar que lo descargaste desde la publicación del proyecto.
+3. Se abrirá la ventana **Monitor de cámaras — Instalador**. Si te pide instalar Microsoft Edge WebView2, acepta para que Windows pueda mostrar el asistente.
+
+Estos son los pasos que verás en la ventana.
+
+1. **Central.** Escribe la dirección de la computadora que muestra las cámaras y el token que genera su panel en **Vínculos**. Si trabajas sin conexión a la central, elige **Sin conexión, solo exportar**.
+2. **Buscar.** Conecta la computadora a la misma red que el grabador (DVR). Pulsa **Buscar DVR** y elige el equipo encontrado. Si ya conoces su dirección, puedes agregarlo a mano.
+3. **Acceso.** Escribe el usuario y la contraseña del grabador y pulsa **Identificar y ver cámaras**.
+4. **Revisión y vista previa.** Revisa las imágenes, nombra las cámaras e indica cuáles deben aparecer en la vista general de la tele. Agrega los canales manualmente si el DVR no los informa.
+5. **Enviar.** Indica el nombre y el identificador de la sucursal. Envía la configuración a la central o guárdala con **Exportar archivo**. El archivo contiene la contraseña del DVR, así que guárdalo en un lugar seguro.
+
+### Compilar el asistente en Windows
+
+Desde la raíz del repositorio, en PowerShell:
+
+```powershell
+npm ci --prefix web
+npm run build --prefix web
+$env:CGO_ENABLED = '0'
+$env:GOOS = 'windows'
+$env:GOARCH = 'amd64'
+go build -tags desktop,production -ldflags '-H windowsgui' -o dist/MonitorCamaras-Instalador.exe ./cmd/instalador
+```
+
+Para generar también el instalador de menú Inicio, agrega `makensis.exe` de NSIS al PATH y ejecuta:
+
+```powershell
+makensis.exe /WX /INPUTCHARSET UTF8 "/DPORTABLE=$PWD\dist\MonitorCamaras-Instalador.exe" "/DSALIDA=$PWD\dist\MonitorCamaras-Instalador-Setup.exe" cmd/instalador/build/windows/instalador.nsi
+```
+
+Si cambias el ícono, vuelve a exportar el SVG a PNG de 1024×1024 y regenera el recurso de Windows. El archivo generado queda junto al código de la app para que `go build` pueda incorporarlo.
+
+```powershell
+go run github.com/tc-hib/go-winres@v0.3.3 make --in cmd/instalador/build/windows/recursos.json --arch amd64 --out cmd/instalador/recursos
+```
+
 ## Producción (PC central)
 
 1. Ejecutar `make build` para compilar la interfaz y generar `dist/monitor` para Linux amd64.
