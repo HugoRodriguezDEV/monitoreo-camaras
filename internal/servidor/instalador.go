@@ -56,6 +56,23 @@ type instaladorAPI struct {
 }
 
 func NuevoInstalador(ctx context.Context, dir string) (http.Handler, error) {
+	return nuevoInstalador(ctx, dir, func(r *http.Request) bool {
+		host, _, err := net.SplitHostPort(r.Host)
+		if err != nil {
+			host = r.Host
+		}
+		return host == "127.0.0.1" || host == "localhost"
+	})
+}
+
+// NuevoInstaladorEmbebido admite el host virtual de Wails en Windows.
+func NuevoInstaladorEmbebido(ctx context.Context, dir string) (http.Handler, error) {
+	return nuevoInstalador(ctx, dir, func(r *http.Request) bool {
+		return r.Host == "wails.localhost"
+	})
+}
+
+func nuevoInstalador(ctx context.Context, dir string, hostLocal func(*http.Request) bool) (http.Handler, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, almacen.ErrGuardar
 	}
@@ -67,7 +84,18 @@ func NuevoInstalador(ctx context.Context, dir string) (http.Handler, error) {
 	if err := almacen.Leer(dir, "central.json", &i.central); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
 	}
-	return i.handler(), nil
+	h := i.handler()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !hostLocal(r) {
+			fallo(w, 403, "El instalador solo admite acceso local")
+			return
+		}
+		if origen := r.Header.Get("Origin"); origen != "" && origen != "http://"+r.Host {
+			fallo(w, 403, "El origen de la solicitud no está permitido")
+			return
+		}
+		h.ServeHTTP(w, r)
+	}), nil
 }
 
 func (i *instaladorAPI) handler() http.Handler {
@@ -83,22 +111,7 @@ func (i *instaladorAPI) handler() http.Handler {
 	mux.HandleFunc("POST /api/instalador/enviar", i.enviar)
 	mux.HandleFunc("POST /api/instalador/exportar", i.exportar)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { fallo(w, 404, "Ruta no encontrada") })
-	h := servir(config.Config{}, nil, nil, web.Dist, mux, true)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host, _, err := net.SplitHostPort(r.Host)
-		if err != nil {
-			host = r.Host
-		}
-		if host != "127.0.0.1" && host != "localhost" {
-			fallo(w, 403, "El instalador solo admite acceso local")
-			return
-		}
-		if origen := r.Header.Get("Origin"); origen != "" && origen != "http://"+r.Host {
-			fallo(w, 403, "El origen de la solicitud no está permitido")
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
+	return servir(config.Config{}, nil, nil, web.Dist, mux, true)
 }
 
 func (i *instaladorAPI) redes(w http.ResponseWriter, r *http.Request) {

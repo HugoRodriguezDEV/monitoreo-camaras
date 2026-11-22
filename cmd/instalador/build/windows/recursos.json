@@ -1,0 +1,16 @@
+{
+  "RT_GROUP_ICON": {
+    "#3": {
+      "0000": "../appicon.png"
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0000": {
+        "description": "Monitor de cámaras — Instalador",
+        "dpi-awareness": "per monitor v2",
+        "use-common-controls-v6": true
+      }
+    }
+  }
+}

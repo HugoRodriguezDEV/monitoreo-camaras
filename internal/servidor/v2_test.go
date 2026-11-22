@@ -233,6 +233,36 @@ func TestRutasPorModo(t *testing.T) {
 	p.pedir("GET", "/api/instalador/redes", "", 200)
 }
 
+func TestOrigenDelInstalador(t *testing.T) {
+	for _, caso := range []struct {
+		nombre string
+		nuevo  func(context.Context, string) (http.Handler, error)
+		host   string
+		origen string
+		estado int
+	}{
+		{"loopback con puerto", NuevoInstalador, "127.0.0.1:1234", "http://127.0.0.1:1234", 200},
+		{"host virtual por TCP", NuevoInstalador, "wails.localhost", "", 403},
+		{"host virtual en WebView2", NuevoInstaladorEmbebido, "wails.localhost", "http://wails.localhost", 200},
+		{"origen ajeno en WebView2", NuevoInstaladorEmbebido, "wails.localhost", "http://otro.localhost", 403},
+		{"host ajeno en WebView2", NuevoInstaladorEmbebido, "otro.localhost", "", 403},
+	} {
+		t.Run(caso.nombre, func(t *testing.T) {
+			h, err := caso.nuevo(t.Context(), t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := httptest.NewRequest(http.MethodGet, "http://"+caso.host+"/api/instalador/central", nil)
+			r.Header.Set("Origin", caso.origen)
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, r)
+			if w.Code != caso.estado {
+				t.Fatalf("estado = %d, se esperaba %d", w.Code, caso.estado)
+			}
+		})
+	}
+}
+
 func TestInstaladorConFakes(t *testing.T) {
 	c := centralPrueba(t)
 	if err := c.a.EditarAdmin(func(a *almacen.Admin) error {
