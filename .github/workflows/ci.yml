@@ -16,8 +16,8 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -26,7 +26,7 @@ jobs:
       - run: npx tsc -b
       - run: npx oxlint src
       - run: npx vite build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: web/dist
@@ -36,11 +36,11 @@ jobs:
     needs: web
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: web/dist
@@ -50,7 +50,7 @@ jobs:
         run: |
           GOOS=linux GOARCH=amd64 go build -o dist/monitor-linux-amd64 ./cmd/monitor
           GOOS=linux GOARCH=arm64 go build -o dist/monitor-linux-arm64 ./cmd/monitor
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: monitor
           path: dist/
