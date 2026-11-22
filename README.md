@@ -51,6 +51,12 @@ Abre http://localhost:3000. La cámara `s4_c1` apunta a una IP inalcanzable
 para probar el aviso de desconexión. Para detener go2rtc, ejecuta
 `docker compose -f docker-compose.dev.yml down`.
 
+Para probar el panel y el asistente sin Go ni go2rtc, ejecuta `npm run dev:falso`
+en `web/`. Abre http://localhost:3000/admin o http://localhost:3000/instalar.
+El DVR de prueba usa el usuario `admin` y la contraseña `demo`. Para probar el
+envío, crea un vínculo en el panel y usa su token y `http://localhost:3000`
+en el asistente. Los cambios se pierden al detener el servidor falso.
+
 ## Configuración (`monitor.yaml`)
 
 En producción, `monitor.yaml` configura el servidor, go2rtc, el sondeo y el directorio

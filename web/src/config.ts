@@ -41,10 +41,10 @@ export async function cargarConfig(): Promise<Config> {
   const res = await fetch(`${import.meta.env.BASE_URL}config.json`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`No se pudo leer config.json (${res.status})`)
   const json = (await res.json()) as Partial<Config>
-  if (!Array.isArray(json.sucursales) || json.sucursales.length === 0) {
-    throw new Error('config.json no tiene sucursales')
+  if (json.sucursales != null && !Array.isArray(json.sucursales)) {
+    throw new Error('La lista de sucursales no tiene el formato esperado.')
   }
-  return { ...DEFAULTS, ...json, sucursales: json.sucursales }
+  return { ...DEFAULTS, ...json, sucursales: json.sucursales ?? [] }
 }
 
 /** URL del WebSocket de go2rtc para un stream. */
