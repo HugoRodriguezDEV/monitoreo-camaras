@@ -70,6 +70,10 @@ func Nuevo(cfg config.Config, estado func() salud.Estado) http.Handler {
 }
 
 func nuevo(cfg config.Config, estado func() salud.Estado, dist fs.FS) http.Handler {
+	return servir(cfg, func() (config.Config, uint64) { return cfg, 0 }, estado, dist, nil, false)
+}
+
+func servir(cfg config.Config, actual func() (config.Config, uint64), estado func() salud.Estado, dist fs.FS, api http.Handler, instalador bool) http.Handler {
 	destino := &url.URL{Scheme: "http", Host: cfg.Go2rtc.API}
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
@@ -82,25 +86,34 @@ func nuevo(cfg config.Config, estado func() salud.Estado, dist fs.FS) http.Handl
 			http.Error(w, "go2rtc no está disponible", http.StatusBadGateway)
 		},
 	}
-	publica := configuracionPublica(cfg)
-	streams := make(map[string]bool)
-	for _, s := range publica.Sucursales {
-		for _, c := range s.Camaras {
-			streams[c.Stream], streams[c.StreamHD] = true, true
-		}
-	}
 	archivos := http.FileServerFS(dist)
 	_, err := fs.Stat(dist, "index.html")
 	compilada := err == nil
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ruta := path.Clean(r.URL.Path)
+		for _, grupo := range []string{"/api/admin", "/api/vinculo", "/api/instalador"} {
+			if ruta == grupo || strings.HasPrefix(ruta, grupo+"/") {
+				if api != nil {
+					api.ServeHTTP(w, r)
+				} else {
+					fallo(w, 404, "Ruta no encontrada")
+				}
+				return
+			}
+		}
+		if (instalador && (ruta == "/admin" || ruta == "/api/ws" || ruta == "/api/estado" || ruta == "/config.json" || ruta == "/video-stream.js" || ruta == "/video-rtc.js")) ||
+			(!instalador && ruta == "/instalar") {
+			fallo(w, 404, "Ruta no encontrada")
+			return
+		}
 		switch r.URL.Path {
 		case "/api/ws", "/video-stream.js", "/video-rtc.js":
 			if r.Method == http.MethodGet {
 				if r.URL.Path == "/api/ws" && r.URL.RawQuery != "" {
 					params, err := url.ParseQuery(r.URL.RawQuery)
 					// Solo se ofrecen streams del monitor. go2rtc también acepta fuentes dinámicas.
-					if err != nil || len(params) != 1 || len(params["src"]) != 1 || !streams[params.Get("src")] {
+					if err != nil || len(params) != 1 || len(params["src"]) != 1 || !streamValido(actual, params.Get("src")) {
 						http.Error(w, "Stream no encontrado", http.StatusNotFound)
 						return
 					}
@@ -112,9 +125,14 @@ func nuevo(cfg config.Config, estado func() salud.Estado, dist fs.FS) http.Handl
 			if r.Method == http.MethodGet || r.Method == http.MethodHead {
 				switch r.URL.Path {
 				case "/config.json":
-					escribirJSON(w, publica)
+					cfg, _ := actual()
+					escribirJSON(w, configuracionPublica(cfg))
 				case "/api/estado":
-					escribirJSON(w, estado())
+					e := estado()
+					if e.ConfigVersion == 0 {
+						_, e.ConfigVersion = actual()
+					}
+					escribirJSON(w, e)
 				case "/salud":
 					w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 					_, _ = io.WriteString(w, "ok\n")
@@ -155,4 +173,16 @@ func nuevo(cfg config.Config, estado func() salud.Estado, dist fs.FS) http.Handl
 		}
 		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
 	})
+}
+
+func streamValido(actual func() (config.Config, uint64), nombre string) bool {
+	cfg, _ := actual()
+	for _, s := range cfg.Sucursales {
+		for _, c := range s.Camaras {
+			if nombre == marcas.Stream(s.ID, c.Canal, false) || nombre == marcas.Stream(s.ID, c.Canal, true) {
+				return true
+			}
+		}
+	}
+	return false
 }

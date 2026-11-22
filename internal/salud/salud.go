@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -25,9 +26,10 @@ type Go2rtc struct {
 }
 
 type Estado struct {
-	Actualizado time.Time  `json:"actualizado"`
-	Go2rtc      Go2rtc     `json:"go2rtc"`
-	Sucursales  []Sucursal `json:"sucursales"`
+	ConfigVersion uint64     `json:"configVersion"`
+	Actualizado   time.Time  `json:"actualizado"`
+	Go2rtc        Go2rtc     `json:"go2rtc"`
+	Sucursales    []Sucursal `json:"sucursales"`
 }
 
 type Cambio struct {
@@ -48,6 +50,8 @@ type Monitor struct {
 	mu        sync.RWMutex
 	estado    Estado
 	fallos    []int
+	revision  uint64
+	sondeo    sync.Mutex
 }
 
 func Nuevo(cfg config.Config, sondas Sondas, alCambiar func(Cambio)) *Monitor {
@@ -62,6 +66,7 @@ func Nuevo(cfg config.Config, sondas Sondas, alCambiar func(Cambio)) *Monitor {
 	for i, s := range cfg.Sucursales {
 		estado.Sucursales[i] = Sucursal{ID: s.ID, EnLinea: true, Desde: ahora}
 	}
+	cfg.Sucursales = slices.Clone(cfg.Sucursales)
 	return &Monitor{cfg: cfg, sondas: sondas, alCambiar: alCambiar, estado: estado, fallos: make([]int, len(cfg.Sucursales))}
 }
 
@@ -114,15 +119,44 @@ func (m *Monitor) Ejecutar(ctx context.Context) {
 	}
 }
 
+// Actualizar conserva la historia solo cuando el destino del sondeo sigue siendo el mismo.
+func (m *Monitor) Actualizar(sucursales []config.Sucursal, version uint64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	indices := make(map[string]int, len(m.cfg.Sucursales))
+	for i, s := range m.cfg.Sucursales {
+		indices[s.ID] = i
+	}
+	estados := make([]Sucursal, len(sucursales))
+	fallos := make([]int, len(sucursales))
+	ahora := time.Now().UTC()
+	for i, s := range sucursales {
+		if anterior, ok := indices[s.ID]; ok && m.cfg.Sucursales[anterior].DVR == s.DVR {
+			estados[i], fallos[i] = m.estado.Sucursales[anterior], m.fallos[anterior]
+		} else {
+			estados[i] = Sucursal{ID: s.ID, EnLinea: true, Desde: ahora}
+		}
+	}
+	m.cfg.Sucursales = slices.Clone(sucursales)
+	m.estado.Sucursales, m.fallos = estados, fallos
+	m.estado.ConfigVersion = version
+	m.revision++
+}
+
 func (m *Monitor) Sondear(ctx context.Context) {
+	m.sondeo.Lock()
+	defer m.sondeo.Unlock()
+	m.mu.RLock()
+	sucursales, revision := m.cfg.Sucursales, m.revision
+	m.mu.RUnlock()
 	type resultado struct {
 		latencia time.Duration
 		err      error
 	}
-	resultados := make([]resultado, len(m.cfg.Sucursales))
+	resultados := make([]resultado, len(sucursales))
 	var apiEnLinea bool
 	var grupo sync.WaitGroup
-	for i, suc := range m.cfg.Sucursales {
+	for i, suc := range sucursales {
 		grupo.Go(func() {
 			latencia, err := m.sondas.TCP(ctx, suc.DVR.Direccion())
 			resultados[i] = resultado{latencia, err}
@@ -137,6 +171,10 @@ func (m *Monitor) Sondear(ctx context.Context) {
 	ahora := time.Now().UTC()
 	var cambios []Cambio
 	m.mu.Lock()
+	if m.revision != revision {
+		m.mu.Unlock()
+		return
+	}
 	m.estado.Actualizado = ahora
 	m.estado.Go2rtc.EnLinea = apiEnLinea
 	for i, r := range resultados {

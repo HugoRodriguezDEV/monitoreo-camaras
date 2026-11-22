@@ -1,3 +1,5 @@
+datos: /var/lib/monitor
+
 servidor:
   escuchar: ":8080"
 go2rtc:
@@ -12,56 +14,10 @@ interfaz:
 salud:
   intervalo_segundos: 10
   caido_tras_fallos: 3
+  recuperar_tras_minutos: 3
 alertas:
   telegram:
     token: ""
     chat_id: ""
-sucursales:
-  - id: s1
-    nombre: Sucursal Centro
-    dvr:
-      marca: hikvision
-      host: 192.0.2.1
-      puerto: 0
-      usuario: admin
-      password: CAMBIAR
-    camaras:
-      - canal: 1
-        nombre: Entrada
-        clave: true
-  - id: s2
-    nombre: Sucursal Norte
-    dvr:
-      marca: dahua
-      host: 192.0.2.2
-      puerto: 0
-      usuario: admin
-      password: CAMBIAR
-    camaras:
-      - canal: 1
-        nombre: Entrada
-        clave: true
-  - id: s3
-    nombre: Sucursal Sur
-    dvr:
-      marca: uniview
-      host: 192.0.2.3
-      puerto: 0
-      usuario: admin
-      password: CAMBIAR
-    camaras:
-      - canal: 1
-        nombre: Entrada
-        clave: true
-  - id: s4
-    nombre: Sucursal Oriente
-    dvr:
-      marca: xmeye
-      host: 192.0.2.4
-      puerto: 0
-      usuario: admin
-      password: CAMBIAR
-    camaras:
-      - canal: 1
-        nombre: Entrada
-        clave: true
+# Opcional. Solo se importa al crear el almacén.
+sucursales: []

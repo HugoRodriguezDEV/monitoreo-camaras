@@ -53,45 +53,58 @@ para probar el aviso de desconexión. Para detener go2rtc, ejecuta
 
 ## Configuración (`monitor.yaml`)
 
-Todo se configura en un solo archivo: sucursales, DVR (marca, IP, usuario y contraseña),
-cámaras por canal, tiempos de rotación, sondeo y alertas de Telegram. El monitor genera de ahí
-la configuración de go2rtc y la de la interfaz (`/config.json`, sin contraseñas).
+En producción, `monitor.yaml` configura el servidor, go2rtc, el sondeo y el directorio
+`datos`. El valor predeterminado de `datos` es `/var/lib/monitor` en Linux y
+`%APPDATA%\monitor-camaras` en Windows. Consulta [monitor.example.yaml](monitor.example.yaml).
 
-- Ejemplo comentado: [`monitor.example.yaml`](monitor.example.yaml).
-- Desarrollo con cámaras de prueba: [`monitor.dev.yaml`](monitor.dev.yaml).
-- Marcas soportadas: `hikvision` (Hik-Connect, Epcom, EZVIZ), `dahua` y clones, `uniview`,
-  `xmeye` (DVR genéricos), `onvif` y `rtsp` genérico. Detalle en
-  [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
-- Antes de instalar, `monitor check -config monitor.yaml` sondea cada DVR e imprime las URLs
-  para probarlas en VLC.
+La primera vez, el monitor importa las sucursales, la interfaz y las alertas del YAML
+al almacén. Una central puede empezar vacía. Después puedes editar las sucursales, las
+cámaras, la rotación y Telegram desde `/admin`. El panel también permite identificar
+y reiniciar grabadores compatibles y crear o revocar vínculos para el instalador.
+
+- **`sucursales.json` es sensible**. Contiene las contraseñas de los DVR en claro y el
+  monitor lo escribe con permisos `0600` en Unix. Protege también el `go2rtc.yaml`
+  generado, las exportaciones de sucursales y cualquier respaldo de estos archivos.
+- `ajustes.json` contiene la configuración de la interfaz y las credenciales de Telegram.
+  `admin.json` contiene el hash bcrypt de la contraseña de administración y los hashes
+  SHA-256 de los tokens de vínculo. Guarda cada token al crearlo, porque se muestra una vez.
 
 ## Monitor en Go
 
-El monitor sirve la interfaz y su configuración en el puerto 8080 (8090 en `monitor.dev.yaml`), sondea
-los grabadores y supervisa go2rtc. El contrato está en
-[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+`monitor run -config monitor.yaml` sirve el kiosco y el panel, vigila los grabadores
+y supervisa go2rtc. Los cambios de sucursales o ajustes actualizan la configuración
+pública y la vigilancia, aumentan `configVersion` y reinician el go2rtc supervisado sin
+detener el monitor. Si un DVR identificado cambia de IP, el monitor busca su MAC o
+serie en el mismo segmento /24 después de tres minutos de caída por defecto y avisa
+por Telegram cuando encuentra la nueva dirección. El contrato está en [docs/V2.md](docs/V2.md).
 
-Con el go2rtc de Docker en ejecución, usa estos comandos desde la raíz:
+Desde la raíz, con el go2rtc de Docker en ejecución, puedes probar el backend así.
 
 ```bash
-go run ./cmd/monitor check -config monitor.dev.yaml
 go run ./cmd/monitor run -config monitor.dev.yaml
+go run ./cmd/monitor check -config monitor.dev.yaml
 ```
 
-`check` muestra la conectividad de las cuatro sucursales y enmascara las
-contraseñas. La IP de la cuarta sucursal está configurada para simular una caída.
-En modo externo, el monitor usa el go2rtc que ya está escuchando en el puerto 1984.
+El monitor de desarrollo escucha en el puerto 8090 y guarda los cambios en `./.datos-dev`.
+`check` lee las sucursales del almacén, sondea cada DVR y enmascara las contraseñas de
+las URLs de prueba. El modo externo utiliza el go2rtc que ya escucha en el puerto 1984.
+
+En la laptop de la sucursal, ejecuta `monitor instalador` para abrir el asistente local
+en el navegador. Vincúlalo con la URL de la central y un token del panel para enviar
+sucursales. El asistente también puede exportarlas a un archivo cuando no hay conexión.
+Puedes usar `-datos <directorio>` para cambiar dónde guarda el vínculo y `-no-abrir` para
+abrir manualmente la URL que imprime.
 
 ## Producción (PC central)
 
 1. Ejecutar `make build` para compilar la interfaz y generar `dist/monitor` para Linux amd64.
 2. En la PC central, colocar el binario junto a `deploy/pc-central/instalar.sh`
    con el nombre `monitor` y ejecutar `sudo deploy/pc-central/instalar.sh kiosco`.
-3. Editar `/etc/monitor/monitor.yaml` con los datos reales y ejecutar
-   `sudo systemctl restart monitor`.
+3. Ejecutar `sudo tailscale up --accept-routes` y abrir `http://localhost:8080/admin`
+   para configurar la contraseña de administración y agregar las sucursales.
 4. Abrir `http://localhost:8080/` para comprobar el kiosco.
 
-## Pendiente (v2 según el plan)
+## Pendiente
 
 - Control con teclado o control remoto (flechas para cambiar de sucursal).
 - Acceso desde el celular de los dueños por la VPN.

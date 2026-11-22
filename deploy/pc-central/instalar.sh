@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prepara la PC central (Debian/Ubuntu) — paso 3 del plan.
 # Uso:  sudo ./instalar.sh <usuario-kiosco>
-# Después: editar /etc/monitor/monitor.yaml y ejecutar `tailscale up`.
+# Después: ejecutar `tailscale up --accept-routes` y abrir el panel /admin.
 set -euo pipefail
 
 KIOSCO="${1:?Uso: sudo ./instalar.sh <usuario-kiosco>}"
@@ -32,7 +32,7 @@ if systemctl cat go2rtc.service >/dev/null 2>&1; then
   systemctl disable --now go2rtc.service
 fi
 id monitor >/dev/null 2>&1 || useradd --system --user-group --no-create-home monitor
-install -d -o monitor -g monitor -m 0750 /var/lib/monitor
+install -d -o monitor -g monitor -m 0700 /var/lib/monitor
 install -d -o root -g monitor -m 0750 /etc/monitor
 install -m 0755 "$SCRIPT_DIR/monitor" /usr/local/bin/monitor
 if [ ! -f /etc/monitor/monitor.yaml ]; then
@@ -70,8 +70,8 @@ chown "$KIOSCO": "$PERFIL"
 
 echo
 echo "Listo. Falta:"
-echo "  1. Llenar /etc/monitor/monitor.yaml con los DVR reales"
-echo "  2. Ejecutar sudo systemctl restart monitor"
+echo "  1. Abrir http://localhost:8080/admin y crear la contraseña de administración"
+echo "  2. Agregar las sucursales desde el panel o vincular el asistente"
 echo "  3. sudo tailscale up --accept-routes"
 echo "  4. BIOS: encender al volver la luz (AC power recovery)"
 echo "  5. Comprobar: vainfo (debe listar H.264) y chrome://gpu (Video Decode: Hardware accelerated)"

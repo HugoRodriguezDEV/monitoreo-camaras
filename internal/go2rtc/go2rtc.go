@@ -84,18 +84,35 @@ func (s *salida) registrar() {
 }
 
 func Supervisar(ctx context.Context, cfg config.Go2rtc) {
+	SupervisarConReinicio(ctx, cfg, nil)
+}
+
+func SupervisarConReinicio(ctx context.Context, cfg config.Go2rtc, reiniciar <-chan struct{}) {
 	if cfg.Externo {
 		return
 	}
 	espera := time.Second
 	for ctx.Err() == nil {
 		inicio := time.Now()
-		cmd := exec.CommandContext(ctx, cfg.Binario, "-config", cfg.Config)
+		corrida, cancelar := context.WithCancel(ctx)
+		cmd := exec.CommandContext(corrida, cfg.Binario, "-config", cfg.Config)
 		cmd.Cancel = func() error { return detener(cmd.Process) }
 		cmd.WaitDelay = 5 * time.Second
 		registro := &salida{}
 		cmd.Stdout, cmd.Stderr = registro, registro
-		err := cmd.Run()
+		fin := make(chan error, 1)
+		go func() { fin <- cmd.Run() }()
+		var err error
+		select {
+		case <-reiniciar:
+			cancelar()
+			<-fin
+			registro.registrar()
+			espera = time.Second
+			continue
+		case err = <-fin:
+			cancelar()
+		}
 		registro.registrar()
 		if ctx.Err() != nil {
 			return
@@ -117,6 +134,10 @@ func Supervisar(ctx context.Context, cfg config.Go2rtc) {
 		case <-ctx.Done():
 			temporizador.Stop()
 			return
+		case <-reiniciar:
+			temporizador.Stop()
+			espera = time.Second
+			continue
 		case <-temporizador.C:
 		}
 		espera = min(espera*2, 30*time.Second)
