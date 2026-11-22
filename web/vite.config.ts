@@ -10,7 +10,11 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/config.json': MONITOR,
-      '/api': { target: MONITOR, ws: true },
+      '/api/estado': MONITOR,
+      '/api/admin': MONITOR,
+      '/api/vinculo': MONITOR,
+      '/api/instalador': MONITOR,
+      '/api/ws': { target: MONITOR, ws: true },
       '/video-stream.js': MONITOR,
       '/video-rtc.js': MONITOR,
     },

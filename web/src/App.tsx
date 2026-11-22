@@ -3,31 +3,47 @@ import { CameraTile } from './components/CameraTile'
 import { Grid, type Celda } from './components/Grid'
 import { Reloj } from './components/Reloj'
 import { cargarConfig, cargarReproductor, type Config } from './config'
-import { useEstado } from './useEstado'
+import { useEstado, type Estado } from './useEstado'
 
 /** 'general' o el id de una sucursal. */
 type Vista = string
 const GENERAL = 'general'
 
 export default function App() {
-  const [config, setConfig] = useState<Config>()
+  const [configuracion, setConfiguracion] = useState<{ config: Config; version?: number }>()
   const [error, setError] = useState<string>()
+  const { estado, version } = useEstado()
 
   useEffect(() => {
-    cargarConfig()
-      .then(setConfig)
-      .catch((e: Error) => setError(e.message))
-  }, [])
+    let activo = true
+    let reintento: ReturnType<typeof setTimeout>
+    function cargar() {
+      void cargarConfig().then(datos => {
+        if (!activo) return
+        setConfiguracion({ config: datos, version })
+        setError(undefined)
+      }).catch((e: Error) => {
+        if (!activo) return
+        setError(e.message)
+        reintento = setTimeout(cargar, 5000)
+      })
+    }
+    cargar()
+    return () => { activo = false; clearTimeout(reintento) }
+  }, [version])
 
-  if (error) return <div className="pantalla-mensaje error">{error}</div>
-  if (!config) return <div className="pantalla-mensaje">Cargando…</div>
-  return <Monitor config={config} />
+  if (!configuracion && error) return <div className="pantalla-mensaje error">{error}</div>
+  if (!configuracion) return <div className="pantalla-mensaje">Cargando…</div>
+  const { config } = configuracion
+  if (!config.sucursales.length) return <div className="pantalla-mensaje tele-vacia">
+    <div>Sin sucursales todavía…<br />Agrégalas desde el panel: <a href="/admin">{location.origin}/admin</a></div>
+  </div>
+  return <Monitor key={configuracion.version} config={config} estado={estado} />
 }
 
-function Monitor({ config }: { config: Config }) {
-  const estado = useEstado()
+function Monitor({ config, estado }: { config: Config; estado: Estado | 'desconocido' }) {
   const caidas = new Set(
-    estado === 'desconocido' ? [] : estado.sucursales.filter((s) => s.enLinea === false).map((s) => s.id),
+    estado === 'desconocido' ? [] : (estado.sucursales ?? []).filter((s) => s.enLinea === false).map((s) => s.id),
   )
   const servidorCaido = estado !== 'desconocido' && estado.go2rtc.enLinea === false
   const [reproductorListo, setReproductorListo] = useState(false)

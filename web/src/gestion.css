@@ -1,0 +1,82 @@
+.tele-vacia { padding: 1rem; text-align: center; line-height: 1.5; }
+.tele-vacia a { color: var(--acento); overflow-wrap: anywhere; }
+
+:root:has(.gestion) body, :root:has(.gestion) #root { height: auto; overflow: visible; }
+:root:has(.gestion) { height: auto; overflow: visible; }
+.gestion {
+  --exito: #83d7b3;
+  --precaucion: #f0c975;
+  --peligro: #ff9699;
+  --accion: #2373c2;
+  min-height: 100vh;
+  background: var(--fondo);
+  color: var(--texto);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (prefers-color-scheme: light) {
+  .gestion {
+    color-scheme: light;
+    --fondo: #f2f5fb;
+    --panel: #fff;
+    --borde: #cbd5e3;
+    --texto: #15243a;
+    --tenue: #4d6077;
+    --acento: #145aa4;
+    --accion: #175ba1;
+    --exito: #126344;
+    --precaucion: #754a05;
+    --peligro: #a82430;
+  }
+}
+.gestion-cabecera { padding: .9rem max(1rem, calc((100% - 64rem) / 2)); border-bottom: 1px solid var(--borde); background: var(--panel); }
+.gestion-cabecera a { color: var(--texto); font-weight: 750; text-decoration: none; }
+.gestion-cuerpo { max-width: 66rem; margin: auto; padding: clamp(1rem, 3vw, 2.5rem) 1rem 3rem; }
+.gestion h1 { font-size: clamp(1.8rem, 4vw, 2.65rem); letter-spacing: -.035em; margin: 0 0 1.25rem; }
+.gestion h2 { font-size: 1.35rem; }
+.gestion h3 { font-size: 1.1rem; }
+.gestion h2, .gestion h3, .gestion p { margin: 0; }
+.gestion a { color: var(--acento); }
+.gestion .gestion-cabecera a { color: var(--texto); }
+.pila { display: grid; gap: 1rem; justify-items: start; }
+.pila > * { min-width: 0; }
+.pila > :is(.tarjeta, form, section, fieldset, .campos, .acciones, .mensaje, .progreso, .hallazgo, .vistas-previas, .fila-camara, .pasos, label) { width: 100%; }
+.tarjeta { background: var(--panel); border: 1px solid var(--borde); border-radius: 1rem; padding: clamp(1rem, 2.5vw, 1.5rem); }
+.tarjeta.acceso { max-width: 30rem; }
+.acciones { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
+.al-final { margin-inline-start: auto; }
+.navegacion { padding-bottom: .8rem; border-bottom: 1px solid var(--borde); }
+.gestion button, .gestion input, .gestion select {
+  font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--borde); border-radius: .55rem; min-height: 44px;
+}
+.gestion button { padding: .55rem .85rem; font-weight: 650; cursor: pointer; }
+.gestion button:hover:not(:disabled), .gestion button[aria-current] { border-color: var(--acento); }
+.gestion button[aria-current] { color: var(--acento); background: color-mix(in srgb, var(--acento) 10%, var(--panel)); }
+.gestion button.primario { background: var(--accion); color: white; border-color: var(--accion); }
+.gestion button.peligro { color: var(--peligro); }
+.gestion button:disabled { opacity: .55; cursor: wait; }
+.gestion :focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+.gestion fieldset { min-inline-size: 0; border: 0; padding: 0; margin: 0; }
+.gestion label { display: grid; gap: .3rem; font-weight: 600; }
+.gestion input:not([type=checkbox]), .gestion select { width: 100%; min-width: 0; padding: .5rem .65rem; }
+.gestion .casilla { display: flex; align-items: center; gap: .55rem; min-height: 44px; }
+.gestion input[type=checkbox] { min-height: 0; width: 1.15rem; height: 1.15rem; margin: 0; flex: none; accent-color: var(--acento); }
+.gestion small, .detalle { color: var(--tenue); font-weight: 400; }
+.campos, .vistas-previas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: .8rem 1rem; }
+.estado { padding: .2rem .6rem; border-radius: 1rem; background: color-mix(in srgb, currentColor 9%, transparent); color: var(--peligro); font-size: .9rem; }
+.estado.conectado { color: var(--exito); }
+.mensaje { padding: .75rem 1rem; border-inline-start: 3px solid currentColor; border-radius: .35rem; color: var(--acento); background: color-mix(in srgb, currentColor 8%, var(--panel)); }
+.mensaje.advertencia { color: var(--precaucion); }
+.gestion .problema { color: var(--peligro); }
+.fila-camara, .hallazgo { padding: .85rem; border: 1px solid var(--borde); border-radius: .65rem; }
+.pasos { display: flex; flex-wrap: wrap; list-style-position: inside; gap: .45rem; margin: 0; padding: 0; color: var(--tenue); }
+.pasos li { padding: .3rem .65rem; border: 1px solid var(--borde); border-radius: .45rem; font-size: .9rem; }
+.pasos [aria-current] { color: var(--acento); border-color: currentColor; font-weight: 700; background: var(--panel); }
+.progreso { gap: .3rem; }
+.progreso progress { width: 100%; accent-color: var(--acento); }
+.foto { width: 100%; }
+.foto img, .foto-vacia { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #0e1116; border-radius: .45rem; }
+.foto-vacia { display: grid; place-items: center; color: #e8ecf1; }
+@media (max-width: 440px) {
+  .gestion .al-final { margin-inline-start: 0; }
+}

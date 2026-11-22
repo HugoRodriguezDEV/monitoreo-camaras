@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-type Estado = {
+export type Estado = {
+  configVersion?: number
   actualizado: string
   go2rtc: { enLinea: boolean }
   sucursales: { id: string; enLinea: boolean; desde: string; latenciaMs: number; error: string }[]
@@ -8,6 +9,7 @@ type Estado = {
 
 export function useEstado() {
   const [estado, setEstado] = useState<Estado | 'desconocido'>('desconocido')
+  const [version, setVersion] = useState<number>()
 
   useEffect(() => {
     const desmontaje = new AbortController()
@@ -20,7 +22,10 @@ export function useEstado() {
         })
         if (!res.ok) throw new Error(`No se pudo consultar el estado (${res.status})`)
         const datos = (await res.json()) as Estado
-        if (!desmontaje.signal.aborted) setEstado(datos)
+        if (!desmontaje.signal.aborted) {
+          setEstado(datos)
+          if (datos.configVersion !== undefined) setVersion(datos.configVersion)
+        }
       } catch {
         if (!desmontaje.signal.aborted) setEstado('desconocido')
       }
@@ -34,5 +39,5 @@ export function useEstado() {
     }
   }, [])
 
-  return estado
+  return { estado, version }
 }
